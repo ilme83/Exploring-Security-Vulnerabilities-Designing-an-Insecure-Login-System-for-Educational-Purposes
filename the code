@@ -1,0 +1,56 @@
+Imports System.Collections.Generic
+Imports System.Security.Cryptography
+Imports System.Text
+
+Module Module1
+
+    Dim users As New List(Of Dictionary(Of String, String)) From {
+        New Dictionary(Of String, String) From { {"username", "admin"}, {"password", "12345"} },
+        New Dictionary(Of String, String) From { {"username", "user1"}, {"password", "password123"} },
+        New Dictionary(Of String, String) From { {"username", "user2"}, {"password", "qwerty"} }
+    }
+
+    Dim loginAttempts As New Dictionary(Of String, Tuple(Of Integer, DateTime))
+    Const MaxAttempts As Integer = 3
+    Const LockoutTime As Integer = 300 ' 5 minutes
+
+    Sub Main()
+        While True
+            Console.WriteLine("Enter your IP address:")
+            Dim ipAddress As String = Console.ReadLine()
+
+            If loginAttempts.ContainsKey(ipAddress) Then
+                Dim attemptsInfo = loginAttempts(ipAddress)
+                If attemptsInfo.Item1 >= MaxAttempts AndAlso (DateTime.Now - attemptsInfo.Item2).TotalSeconds < LockoutTime Then
+                    Console.WriteLine("Too many attempts. Please wait 5 minutes.")
+                    Continue While
+                ElseIf (DateTime.Now - attemptsInfo.Item2).TotalSeconds >= LockoutTime Then
+                    loginAttempts(ipAddress) = Tuple.Create(0, DateTime.Now)
+                End If
+            End If
+
+            Console.WriteLine("Enter username:")
+            Dim username = Console.ReadLine()
+
+            Console.WriteLine("Enter password:")
+            Dim password = Console.ReadLine()
+
+            Dim usernameExists = users.Any(Function(user) user("username") = username)
+            Dim passwordExists = users.Any(Function(user) user("password") = password)
+
+            If usernameExists AndAlso passwordExists Then
+                Console.WriteLine("Login successful!")
+                If loginAttempts.ContainsKey(ipAddress) Then
+                    loginAttempts(ipAddress) = Tuple.Create(0, DateTime.Now)
+                End If
+            Else
+                If Not loginAttempts.ContainsKey(ipAddress) Then
+                    loginAttempts(ipAddress) = Tuple.Create(0, DateTime.Now)
+                End If
+                loginAttempts(ipAddress) = Tuple.Create(loginAttempts(ipAddress).Item1 + 1, DateTime.Now)
+                Console.WriteLine("Invalid username or password.")
+            End If
+        End While
+    End Sub
+
+End Module
